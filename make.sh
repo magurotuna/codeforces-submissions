@@ -7,7 +7,7 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 
-cargo init $1
+cargo new $1 --vcs git
 cd $1
 git init
 
