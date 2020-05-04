@@ -60,5 +60,23 @@ fn main() {
     }
 }
 fn solve() {
-    todo!();
+    let (n, c) = get!((usize, i64));
+    let a = get!([i64]);
+    let b = get!([i64]);
+    let mut dp = vec![vec![0; 2]; n + 1];
+    dp[0][1] = c;
+    // calculate dp table
+    for i in 0..a.len() {
+        let ai = a[i];
+        let bi = b[i];
+        dp[i + 1][0] = min(dp[i][0] + ai, dp[i][1] + ai);
+        dp[i + 1][1] = min(dp[i][0] + bi + c, dp[i][1] + bi);
+    }
+    debug!(dp);
+    let mut ans = Vec::with_capacity(n);
+    for i in 0..n {
+        let m = min(dp[i][0], dp[i][1]);
+        ans.push(m.to_string());
+    }
+    echo!(ans.join(" "));
 }
