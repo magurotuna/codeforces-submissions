@@ -59,6 +59,50 @@ fn main() {
         solve();
     }
 }
+
+// TODO: not yet solved
 fn solve() {
-    todo!();
+    let (n, k) = get!((usize, usize));
+    let a = get!([i64]);
+    let e = get!([(usize1, usize1); n - 1]);
+
+    let mut edges = vec![vec![]; n];
+    for (from, to) in e {
+        edges[from].push(to);
+        edges[to].push(from);
+    }
+
+    let mut ans = 0;
+    for root in 0..n {
+        let mut subsets = Vec::new();
+        dfs(&mut subsets, &edges, root, root, 0, k);
+        debug!(root, subsets);
+        debug!(weight(&a, &subsets));
+        chmax!(ans, weight(&a, &subsets));
+    }
+    echo!(ans);
+}
+
+fn dfs(
+    subsets: &mut Vec<usize>,
+    edges: &Vec<Vec<usize>>,
+    from: usize,
+    cur: usize,
+    dist: usize,
+    k: usize,
+) {
+    if dist > k {
+        subsets.push(cur);
+    }
+
+    for &next in &edges[cur] {
+        if next == from {
+            continue;
+        }
+        dfs(subsets, edges, cur, next, dist + 1, k);
+    }
+}
+
+fn weight(a: &[i64], subsets: &[usize]) -> i64 {
+    subsets.iter().map(|&idx| a[idx]).sum()
 }
