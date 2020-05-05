@@ -1,73 +1,78 @@
-use std::collections::{BinaryHeap, HashMap};
-use std::io::{self, BufRead};
-
-// TODO: WA
+//! https://github.com/hatoo/competitive-rust-snippets
+//!
+//! MIT License
+//!
+//! Copyright (c) 2018 hatoo
+//!
+//! Permission is hereby granted, free of charge, to any person obtaining a copy
+//! of this software and associated documentation files (the "Software"), to deal
+//! in the Software without restriction, including without limitation the rights
+//! to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//! copies of the Software, and to permit persons to whom the Software is
+//! furnished to do so, subject to the following conditions:
+//!
+//! The above copyright notice and this permission notice shall be included in all
+//! copies or substantial portions of the Software.
+//!
+//! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//! AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//! LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//! OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//! SOFTWARE.
+#![allow(
+    unused_imports,
+    unused_attributes,
+    unused_macros,
+    dead_code,
+    non_snake_case
+)]
+use std::cmp::{max, min, Ordering};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
+use std::io::{stdin, stdout, BufWriter, Write};
+use std::iter::FromIterator;
+#[macro_export]
+macro_rules !get {(@inner [$src :expr ] chars ) =>{{let mut buf =String ::new () ;$src .read_line (&mut buf ) .unwrap () ;buf .trim () .chars () .collect ::<Vec <char >>() } } ;(@inner [$src :expr ] usize1 ) =>{{get !(@inner [$src ] usize ) -1 } } ;(@inner [$src :expr ] [usize1 ] ) =>{{get !(@inner [$src ] [usize ] ) .into_iter () .map (|v |v -1 ) .collect ::<Vec <usize >>() } } ;(@inner [$src :expr ] [[usize1 ] ;$n :expr ] ) =>{{(0 ..$n ) .map (|_ |get !(@inner [$src ] [usize1 ] ) ) .collect ::<Vec <_ >>() } } ;(@inner [$src :expr ] [usize1 ;$n :expr ] ) =>{{(0 ..$n ) .map (|_ |get !(@inner [$src ] [usize1 ] ) ) .flatten () .collect ::<Vec <_ >>() } } ;(@inner [$src :expr ] [[chars ] ;$n :expr ] ) =>{{(0 ..$n ) .map (|_ |get !(@inner [$src ] chars ) ) .collect ::<Vec <_ >>() } } ;(@inner [$src :expr ] [chars ;$n :expr ] ) =>{{(0 ..$n ) .map (|_ |get !(@inner [$src ] chars ) ) .collect ::<Vec <_ >>() } } ;(@inner [$src :expr ] [($($tt :tt ) ,*) ;$n :expr ] ) =>{{(0 ..$n ) .map (|_ |get !(@inner [$src ] ($($tt ) ,*) ) ) .collect ::<Vec <_ >>() } } ;(@inner [$src :expr ] ($($tt :tt ) ,*) ) =>{{let mut buf :String =String ::new () ;$src .read_line (&mut buf ) .unwrap () ;let mut iter =buf .split_whitespace () ;($(get !(@inner_elem_parse [$tt ] iter .next () .unwrap () ) ,) *) } } ;(@inner [$src :expr ] [$t :ty ] ) =>{{let mut buf =String ::new () ;$src .read_line (&mut buf ) .unwrap () ;buf .trim () .split_whitespace () .map (|t |t .parse ::<$t >() .unwrap () ) .collect ::<Vec <_ >>() } } ;(@inner [$src :expr ] [[$t :ty ] ;$n :expr ] ) =>{{(0 ..$n ) .map (|_ |get !(@inner [$src ] [$t ] ) ) .collect ::<Vec <_ >>() } } ;(@inner [$src :expr ] [$t :ty ;$n :expr ] ) =>{{(0 ..$n ) .map (|_ |get !(@inner [$src ] [$t ] ) ) .flatten () .collect ::<Vec <_ >>() } } ;(@inner [$src :expr ] $t :ty ) =>{{let mut buf =String ::new () ;$src .read_line (&mut buf ) .unwrap () ;buf .trim () .split_whitespace () .next () .unwrap () .parse ::<$t >() .unwrap () } } ;(@inner_elem_parse [usize1 ] $elem :expr ) =>{{get !(@inner_elem_parse [usize ] $elem ) -1 } } ;(@inner_elem_parse [$t :ty ] $elem :expr ) =>{{$elem .parse ::<$t >() .unwrap () } } ;($tt :tt ) =>{{use std ::io ::BufRead ;let get_stdin =std ::io ::stdin () ;let mut locked_stdin =get_stdin .lock () ;get !(@inner [&mut locked_stdin ] $tt ) } } ;}
+macro_rules !debug {($($a :expr ) ,*$(,) *) =>{#[cfg (debug_assertions ) ] eprintln !(concat !($("| " ,stringify !($a ) ,"={:?} " ) ,*,"|" ) ,$(&$a ) ,*) ;} ;}
+macro_rules !echo {($($a :expr ) ,*) =>{let mut s =Vec ::new () ;$(s .push (format !("{}" ,$a ) ) ;) *println !("{}" ,s .join (" " ) ) ;} }
+#[macro_export]
+macro_rules !chmin {($base :ident ,$($cmps :expr ) ,+$(,) *) =>{$base =min !($base ,$($cmps ) ,+) ;} ;}
+#[macro_export]
+macro_rules !chmax {($base :ident ,$($cmps :expr ) ,+$(,) *) =>{$base =max !($base ,$($cmps ) ,+) ;} ;}
+#[macro_export]
+macro_rules !min {($a :expr ,$b :expr $(,) *) =>{{std ::cmp ::min ($a ,$b ) } } ;($a :expr ,$($rest :expr ) ,+$(,) *) =>{{std ::cmp ::min ($a ,min !($($rest ) ,+) ) } } ;}
+#[macro_export]
+macro_rules !max {($a :expr ,$b :expr $(,) *) =>{{std ::cmp ::max ($a ,$b ) } } ;($a :expr ,$($rest :expr ) ,+$(,) *) =>{{std ::cmp ::max ($a ,max !($($rest ) ,+) ) } } ;}
+const BIG_STACK_SIZE: bool = true;
 fn main() {
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-    let mut buf = String::new();
-    handle.read_line(&mut buf).unwrap();
-    let t = buf.trim().parse::<usize>().unwrap();
-    buf.clear();
-
-    let mut ans = Vec::with_capacity(t);
-
-    'outer: for i in 0..t {
-        handle.read_line(&mut buf).unwrap();
-        let n = buf.trim().parse::<usize>().unwrap();
-        buf.clear();
-
-        let mut map = HashMap::new();
-        let mut heap = BinaryHeap::new();
-
-        handle.read_line(&mut buf).unwrap();
-        for a in buf
-            .trim()
-            .split_whitespace()
-            .map(|x| x.parse::<usize>().unwrap())
-        {
-            *map.entry(a).or_insert(0) += 1;
-        }
-
-        buf.clear();
-
-        if n == 1 {
-            ans.push(0.to_string());
-            continue;
-        }
-
-        for (k, v) in map.clone() {
-            if v >= 2 {
-                heap.push((v, k));
-                map.remove(&k);
-            }
-        }
-
-        while !heap.is_empty() {
-            let (val, key) = heap.pop().unwrap();
-            if map.len() >= val {
-                ans.push(val.to_string());
-                continue 'outer;
-            }
-
-            *map.entry(key).or_insert(0) += 1;
-
-            let tmp = std::cmp::max(val - 1, heap.peek().unwrap_or(&(0, 0)).0);
-            if map.len() >= tmp {
-                ans.push(tmp.to_string());
-                continue 'outer;
-            }
-
-            match heap.peek() {
-                Some(&(v2, _)) if v2 > 1 => heap.push((v2 - 1, key)),
-                _ => {
-                    ans.push(1.to_string());
-                    continue 'outer;
-                }
-            }
-        }
-        ans.push(1.to_string());
+    use std::thread;
+    if BIG_STACK_SIZE {
+        thread::Builder::new()
+            .stack_size(32 * 1024 * 1024)
+            .name("solve".into())
+            .spawn(solve)
+            .unwrap()
+            .join()
+            .unwrap();
+    } else {
+        solve();
     }
-
-    println!("{}", ans.join("\n"));
+}
+fn solve() {
+    let t = get!(usize);
+    for _ in 0..t {
+        let n = get!(usize);
+        let a = get!([usize1]);
+        let mut pat = 0;
+        let mut skills = vec![0; n];
+        for i in 0..n {
+            if skills[a[i]] == 0 {
+                pat += 1;
+            }
+            skills[a[i]] += 1;
+        }
+        let maxs = skills.into_iter().max().unwrap();
+        echo!(max(min(pat, maxs - 1), min(pat - 1, maxs)));
+    }
 }
