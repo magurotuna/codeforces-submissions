@@ -59,125 +59,86 @@ fn main() {
         solve();
     }
 }
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+struct TheRange {
+    len: usize,
+    left: usize,
+    right: usize,
+}
+
+impl std::cmp::PartialOrd for TheRange {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self.len.cmp(&other.len) {
+            Ordering::Equal => Some(other.left.cmp(&self.left)),
+            otherwise => Some(otherwise),
+        }
+    }
+}
+
+impl std::cmp::Ord for TheRange {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(&other).unwrap()
+    }
+}
+
 fn solve() {
     let t = get!(usize);
     let mut ans = Vec::with_capacity(t);
     for _ in 0..t {
         let n = get!(usize);
-        if n == 1 {
-            ans.push("1".to_string());
-            continue;
-        }
-        if n == 2 {
-            ans.push("1 2".to_string());
-            continue;
-        }
         let mut tans = vec![0i32; n];
-        let mut len_heap = BinaryHeap::new();
-        len_heap.push((n, 0, n));
-        dfs2(&mut tans, &mut len_heap, 1);
-        //dfs(&mut tans, 1, false);
-        debug!(tans);
-        let mut cnt = vec![0i32; n];
-        for i in 0..n {
-            cnt[tans[i] as usize] += 1;
+        let mut bh = BinaryHeap::new();
+        bh.push(TheRange {
+            len: n,
+            left: 0,
+            right: 0,
+        });
+        let mut cur = 1;
+        while let Some(TheRange { len, left, right }) = bh.pop() {
+            if len == 1 {
+                tans[left] = cur;
+            } else if len == 2 {
+                tans[left] = cur;
+                bh.push(TheRange {
+                    len: 1,
+                    left: left + 1,
+                    right: right,
+                });
+            } else if len % 2 == 0 {
+                let pivot = (len - 1) / 2 + left;
+                tans[pivot] = cur;
+                bh.push(TheRange {
+                    len: (len - 1) / 2,
+                    left: left,
+                    right: pivot,
+                });
+                bh.push(TheRange {
+                    len: len / 2,
+                    left: pivot + 1,
+                    right: right,
+                });
+            } else {
+                let pivot = len / 2 + left;
+                tans[pivot] = cur;
+                bh.push(TheRange {
+                    len: len / 2,
+                    left: left,
+                    right: pivot,
+                });
+                bh.push(TheRange {
+                    len: len / 2,
+                    left: pivot + 1,
+                    right: right,
+                });
+            }
+            cur += 1;
         }
-        debug!(cnt);
-        let mut cumsum = vec![0i32; n + 10];
-        for i in 0..n {
-            cumsum[i + 1] = cumsum[i] + cnt[i];
-        }
-        for i in 0..n {
-            cnt[i] = cumsum[i] + 1;
-        }
-        debug!(cnt);
-        for i in 0..n {
-            let prev = tans[i] as usize;
-            tans[i] = cnt[prev];
-            cnt[prev] += 1;
-        }
-        debug!(tans);
-
         ans.push(
-            tans.into_iter()
-                .map(|x| x.to_string())
+            tans.iter()
+                .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join(" "),
         );
     }
     echo!(ans.join("\n"));
-}
-
-fn dfs2(vec: &mut [i32], heap: &mut BinaryHeap<(usize, usize, usize)>, cur: i32) {
-    if heap.is_empty() {
-        return;
-    }
-
-    let (len, from, to) = heap.pop().unwrap();
-    debug!(len, from, to);
-    vec[(to - from - 1) / 2 + from] = cur;
-    if len == 1 {
-        ()
-    } else if len == 2 {
-        vec[(to - from - 1) / 2 + 1 + from] = cur + 1;
-    } else if len % 2 == 0 {
-        let mid = (to - from) / 2 + from;
-        heap.push(((len - 1) / 2, from, mid - 1));
-        heap.push((len / 2, mid, to));
-    } else {
-        let mid = (to - from) / 2 + from;
-        heap.push((len / 2, from, mid));
-        heap.push((len / 2, mid + 1, to));
-    }
-    while let Some(&(l, f, t)) = heap.peek() {
-        if len != l {
-            break;
-        }
-        let len = l;
-        let from = f;
-        let to = t;
-        heap.pop();
-        debug!(len, from, to);
-        vec[(to - from - 1) / 2 + from] = cur;
-        if len == 1 {
-            ()
-        } else if len == 2 {
-            vec[(to - from - 1) / 2 + 1 + from] = cur + 1;
-        } else if len % 2 == 0 {
-            let mid = (to - from) / 2 + from;
-            heap.push(((len - 1) / 2, from, mid - 1));
-            heap.push((len / 2, mid, to));
-        } else {
-            let mid = (to - from) / 2 + from;
-            heap.push((len / 2, from, mid));
-            heap.push((len / 2, mid + 1, to));
-        }
-    }
-    dfs2(vec, heap, cur + 1);
-}
-
-fn dfs(vec: &mut [i32], cur: i32, flg: bool) {
-    let len = vec.len();
-    if len == 1 {
-        vec[0] = cur;
-        return;
-    }
-    if len == 2 {
-        vec[0] = cur;
-        vec[1] = cur + 1;
-        return;
-    }
-
-    if len % 2 == 0 {
-        let piv = (len - 1) / 2;
-        vec[piv] = cur;
-        dfs(&mut vec[..piv], cur + 2, false);
-        dfs(&mut vec[(piv + 1)..], cur + 1, (len - piv + 1) % 2 != 0);
-    } else {
-        let piv = len / 2;
-        vec[piv] = cur;
-        let next = if flg { cur + 2 } else { cur + 1 };
-        dfs(&mut vec[..piv], next, false);
-        dfs(&mut vec[(piv + 1)..], next, false);
-    }
 }
