@@ -61,6 +61,30 @@ fn main() {
 }
 fn solve() {
     let (a, b, c, d) = get!((i64, i64, i64, i64));
+    const N: usize = 1_000_100;
+    let mut imos = vec![0i64; N];
+    for x in a..=b {
+        let from = (x + b) as usize;
+        let to = (x + c + 1) as usize;
+        imos[from] += 1;
+        imos[to] -= 1;
+    }
+    for i in 1..N {
+        imos[i] += imos[i - 1];
+    }
+    let mut cumsum = vec![0i64; N];
+    for i in 1..N {
+        cumsum[i] = cumsum[i - 1] + imos[i - 1];
+    }
+    let mut ans = 0;
+    for z in c..=d {
+        ans += cumsum[N - 1] - cumsum[z as usize + 1];
+    }
+    echo!(ans);
+}
+
+fn solve2() {
+    let (a, b, c, d) = get!((i64, i64, i64, i64));
     let height = c - b;
     let width = b - a;
     let mut appear = vec![0i64; (height + width + 10) as usize];
